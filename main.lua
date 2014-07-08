@@ -35,14 +35,21 @@ function love.mousepressed(x, y, button)
         return
     end
 
-    if button == "l" then
-        for p, point in ipairs(path.controlPoints) do
-            if (point.x - x) ^ 2 + (point.y - y) ^ 2 < 400 then
+    for point in path:controlPoints() do
+        if (point.x - x) ^ 2 + (point.y - y) ^ 2 < 400 then
+            if button == "l" then
                 drag = point
-                return
+            elseif button == "r" and not point.node then
+                --      this is shit ^
+                -- must have some distinctive thing for nodes and handles
+                path:removeNode(point)
+                path:updatePoints()
             end
+            return
         end
+    end
 
+    if button == "l" then
         drag = path:addNode(x, y)
     end
 end
