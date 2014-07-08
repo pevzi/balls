@@ -1,80 +1,95 @@
+require "path"
+
 local lg = love.graphics
+local lm = love.mouse
 
 local w = lg.getWidth()
 local h = lg.getHeight()
 
-local cspeed = 300
+local cspeed = 100
 local radius = 20
 local nballs = 8
 
-local curve, points, balls
+local path, balls, drag, moving
 
-function curveToPoints(curve, step)
-    step = step or 1
+local function init()
+    path = newPath()
 
-    local dcurve = curve:getDerivative()
+    path:updatePoints()
 
-    local points = {}
-    local arg = 0
-
-    while arg <= 1 do
-        local x, y = curve:evaluate(arg)
-        table.insert(points, {x = x, y = y})
-
-        local dx, dy = dcurve:evaluate(arg)
-        arg = arg + step / math.sqrt(dx ^ 2 + dy ^ 2)
-    end
-
-    return points
-end
-
-function makeRandomCurve(n)
-    local curve = love.math.newBezierCurve()
-
-    for i = 1, n do
-        curve:insertControlPoint(math.random(w), math.random(h))
-    end
-
-    return curve
-end
-
-function init()
-    curve = makeRandomCurve(4)
-    points = curveToPoints(curve)
     balls = {}
+    drag = nil
+    moving = false
 end
 
 function love.load()
     math.randomseed(os.time())
 
+    lg.setBackgroundColor(30, 30, 30)
+
     init()
 end
 
+function love.mousepressed(x, y, button)
+    if moving then
+        return
+    end
+
+    if button == "l" then
+        for p, point in ipairs(path.controlPoints) do
+            if (point.x - x) ^ 2 + (point.y - y) ^ 2 < 400 then
+                drag = point
+                return
+            end
+        end
+
+        drag = path:addNode(x, y)
+    end
+end
+
+function love.mousereleased(x, y, button)
+    drag = nil
+end
+
 function love.keypressed(key)
-    if key == " " then
+    if key == "return" then
         init()
+    elseif key == " " then
+        moving = not moving
+        drag = nil
     end
 end
 
 function love.update(dt)
-    local last = balls[#balls]
-
-    if #balls < nballs and (last == nil or last > radius * 2) then
-        table.insert(balls, (last or 0) - radius * 2)
+    if drag then
+        drag:setPosition(lm.getX(), lm.getY())
+        path:updatePoints()
     end
 
-    for i, cx in ipairs(balls) do
-        balls[i] = cx + cspeed * dt
-        if balls[i] > #points and i == nballs then
-            init()
-            break
+    if moving then
+        local last = balls[#balls]
+
+        if #balls < nballs and (last == nil or last > radius * 2) then
+            table.insert(balls, (last or 0) - radius * 2)
+        end
+
+        for i, cx in ipairs(balls) do
+            balls[i] = cx + cspeed * dt
+            if balls[i] > #path.points and i == nballs then
+                balls = {}
+                break
+            end
         end
     end
 end
 
 function love.draw()
+    path:draw(not moving)
+
+    lg.setColor(230, 230, 230)
+
     for i, cx in ipairs(balls) do
-        local p = points[math.floor(cx + 0.5)]
+        local p = path.points[math.floor(cx + 0.5)]
         if p then
             lg.circle("fill", p.x, p.y, radius, 20)
         end
