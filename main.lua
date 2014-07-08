@@ -39,14 +39,15 @@ function love.mousepressed(x, y, button)
         if (point.x - x) ^ 2 + (point.y - y) ^ 2 < 400 then
             if button == "l" then
                 drag = point
+                return
             elseif button == "r" and not point.node then
                 --                   ^^^^ shit ^^^^
                 -- must have some distinctive thing for nodes and handles
                 path:removeNode(point)
                 path:updatePoints()
                 drag = nil
+                return
             end
-            return
         end
     end
 
