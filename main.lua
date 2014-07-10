@@ -2,6 +2,7 @@ require "path"
 
 local lg = love.graphics
 local lm = love.mouse
+local lk = love.keyboard
 
 local w = lg.getWidth()
 local h = lg.getHeight()
@@ -71,7 +72,7 @@ end
 
 function love.update(dt)
     if drag then
-        drag:setPosition(lm.getX(), lm.getY())
+        drag:setPosition(lm.getX(), lm.getY(), lk.isDown("lshift"))
         path:updatePoints()
     end
 
