@@ -36,7 +36,7 @@ function love.mousepressed(x, y, button)
         return
     end
 
-    for point in path:controlPoints() do
+    for point in pairs(path.controlPoints) do
         if (point.x - x) ^ 2 + (point.y - y) ^ 2 < 400 then
             if button == "l" then
                 drag = point

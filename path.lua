@@ -6,10 +6,15 @@ local h = lg.getHeight()
 local function getCollinear(x, y, ox, oy, px, py, dir)
     dir = dir or -1
 
-    local k = px and math.sqrt(
-        ((px - ox) ^ 2 + (py - oy) ^ 2)
-        / ((x - ox) ^ 2 + (y - oy) ^ 2)
-        ) or 1
+    local k
+
+    if px then
+        local d1 = (px - ox) ^ 2 + (py - oy) ^ 2
+        local d2 = (x - ox) ^ 2 + (y - oy) ^ 2
+        k = math.sqrt(d1 / d2)
+    else
+        k = 1
+    end
 
     if k < math.huge then
         return (ox + dir * (x - ox) * k), (oy + dir * (y - oy) * k)
@@ -90,7 +95,7 @@ function Node:updateCurve() -- or curves?
     end
 
     if self.curve2 then
-        self.curve2:setControlPoint(4, self.x, self.y)
+        self.curve2:setControlPoint(-1, self.x, self.y)
     end
 end
 
@@ -100,9 +105,10 @@ Path.__index = Path
 function newPath()
     local self = setmetatable({}, Path)
 
+    self.head = nil
     self.tail = nil
-    self.curves = {}
-    self.colors = {}
+    self.controlPoints = {} -- maybe try to make this one weak too
+    self.colors = setmetatable({}, {__mode = "k"})
     self.points = {}
 
     return self
@@ -126,6 +132,9 @@ function Path:addNode(x, y)
         curve = love.math.newBezierCurve(self.tail.x, self.tail.y, p2x, p2y,
             p3x, p3y, x, y)
 
+        local c = math.random(0, 255)
+        self.colors[curve] = {c, 255 - c, 255 - c}
+
         self.tail.handle1 = newHandle(p2x, p2y, 2, curve, self.tail,
             self.tail.handle2)
         if self.tail.handle2 then
@@ -133,14 +142,21 @@ function Path:addNode(x, y)
         end
         self.tail.curve1 = curve
 
-        node.handle2 = newHandle(p3x, p3y, 3, curve, node)
+        node.handle2 = newHandle(p3x, p3y, -2, curve, node)
         node.curve2 = curve
-
-        self:addCurve(curve)
 
         self:addControlPoint(self.tail.handle1)
         self:addControlPoint(node.handle2)
     end
+
+    if self.tail then
+        node.prev = self.tail
+        self.tail.next = node
+    else
+        self.head = node
+    end
+
+    self.tail = node
 
     self:addControlPoint(node)
 
@@ -159,31 +175,30 @@ function Path:removeNode(node)
     self:removeControlPoint(node)
 
     if node.next then
-        self:removeCurve(node.curve1)
-
-        local nextNode = node.next.next
+        local nextNode = node.next
 
         if node.prev then
             nextNode.curve2 = node.curve2
+            nextNode:updateCurve()
+            
             nextNode.handle2.curve = node.curve2
             nextNode.handle2:updateCurve()
         else
             nextNode.curve2 = nil
+
             self:removeControlPoint(nextNode.handle2)
             nextNode.handle2 = nil
             if nextNode.handle1 then
                 nextNode.handle1.collinear = nil
             end
         end
-
-        nextNode:updateCurve()
     else
         if node.prev then
-            local prevNode = node.prev.prev
+            local prevNode = node.prev
 
-            self:removeCurve(prevNode.curve1)
-            self:removeControlPoint(prevNode.handle1)
             prevNode.curve1 = nil
+
+            self:removeControlPoint(prevNode.handle1)
             prevNode.handle1 = nil
             if prevNode.handle2 then
                 prevNode.handle2.collinear = nil
@@ -192,67 +207,50 @@ function Path:removeNode(node)
             prevNode:updateCurve()
         end
     end
-end
 
-function Path:addControlPoint(point)
-    if self.tail then
-        point.prev = self.tail
-        self.tail.next = point
+    if node.prev then
+        node.prev.next = node.next
+    else
+        self.head = self.head.next
     end
 
-    self.tail = point
-end
-
-function Path:removeControlPoint(point)
-    if point.prev then
-        point.prev.next = point.next
-    end
-
-    if point.next then
-        point.next.prev = point.prev
-    end
-
-    if point == self.tail then -- redundant?
+    if node.next then
+        node.next.prev = node.prev
+    else
         self.tail = self.tail.prev
     end
 end
 
-function Path:controlPoints()
-    local function f(tail, point)
-        if point then
-            return point.prev
+function Path:curves()
+    local function f(head, node)
+        local nextNode
+
+        if node then
+            nextNode = node.next
         else
-            return tail
+            nextNode = head
+        end
+
+        if nextNode and nextNode.curve1 then
+            return nextNode, nextNode.curve1
         end
     end
 
-    return f, self.tail, nil
+    return f, self.head, nil
 end
 
-function Path:addCurve(curve)
-    local c = math.random(0, 255)
-    local color = {c, 255 - c, 255 - c}
-
-    table.insert(self.curves, curve)
-    table.insert(self.colors, color)
+function Path:addControlPoint(point)
+    self.controlPoints[point] = true
 end
 
-function Path:removeCurve(curve)
-    -- shit
-
-    for i, c in ipairs(self.curves) do
-        if c == curve then
-            table.remove(self.curves, i)
-            table.remove(self.colors, i)
-            return
-        end
-    end
+function Path:removeControlPoint(point)
+    self.controlPoints[point] = nil
 end
 
 function Path:updatePoints()
     self.points = {}
 
-    for _, curve in ipairs(self.curves) do
+    for _, curve in self:curves() do
         local dcurve = curve:getDerivative()
 
         local arg = 0
@@ -273,15 +271,15 @@ function Path:updatePoints()
 end
 
 function Path:draw(editing)
-    for c, curve in ipairs(self.curves) do
-        lg.setColor(self.colors[c])
+    for _, curve in self:curves() do
+        lg.setColor(self.colors[curve])
         lg.line(curve:render())
     end
 
     if editing then
         lg.setColor(255, 255, 255, 60)
 
-        for point in self:controlPoints() do
+        for point in pairs(self.controlPoints) do
             if point.node then
                 lg.line(point.x, point.y, point.node.x, point.node.y)
                 lg.circle("line", point.x, point.y, 5, 16)
