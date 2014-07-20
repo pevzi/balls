@@ -1,27 +1,9 @@
+local u = require "useful"
+
 local lg = love.graphics
 
 local w = lg.getWidth()
 local h = lg.getHeight()
-
-local function getCollinear(x, y, ox, oy, px, py, dir)
-    dir = dir or -1
-
-    local k
-
-    if px then
-        local d1 = (px - ox) ^ 2 + (py - oy) ^ 2
-        local d2 = (x - ox) ^ 2 + (y - oy) ^ 2
-        k = math.sqrt(d1 / d2)
-    else
-        k = 1
-    end
-
-    if k < math.huge then
-        return (ox + dir * (x - ox) * k), (oy + dir * (y - oy) * k)
-    else
-        return px, py
-    end
-end
 
 local Handle = {}
 Handle.__index = Handle
@@ -39,13 +21,26 @@ local function newHandle(x, y, p, curve, node, collinear)
     return self
 end
 
+function Handle:getCollinear(distance)
+    local d1 = u.dist(self.node.x, self.node.y, self.x, self.y)
+    local d2 = distance or u.dist(self.node.x, self.node.y,
+        self.collinear.x, self.collinear.y)
+    local k = d2 / d1
+
+    if k < math.huge then
+        return self.node.x - (self.x - self.node.x) * k,
+               self.node.y - (self.y - self.node.y) * k
+    else
+        return self.collinear.x, self.collinear.y
+    end
+end
+
 function Handle:setPosition(x, y, noUpdateCollinear)
     self.x = x
     self.y = y
 
     if not noUpdateCollinear and self.collinear then
-        local collX, collY = getCollinear(x, y, self.node.x, self.node.y,
-            self.collinear.x, self.collinear.y)
+        local collX, collY = self:getCollinear()
         self.collinear:setPosition(collX, collY, true)
     end
 
@@ -102,7 +97,7 @@ end
 local Path = {}
 Path.__index = Path
 
-function newPath()
+local function newPath()
     local self = setmetatable({}, Path)
 
     self.head = nil
@@ -120,14 +115,15 @@ function Path:addNode(x, y)
     if self.tail then
         local curve, p2x, p2y, p3x, p3y
 
+        local distance = u.dist(x, y, self.tail.x, self.tail.y) / 2
+
         if self.tail.handle2 then
-            p2x, p2y = getCollinear(self.tail.handle2.x, self.tail.handle2.y,
-                self.tail.x, self.tail.y)
+            p2x, p2y = self.tail.handle2:getCollinear(distance)
         else
-            p2x, p2y = math.random(w), math.random(h)
+            p2x, p2y = u.randomHandle(self.tail.x, self.tail.y, distance)
         end
 
-        p3x, p3y = math.random(w), math.random(h)
+        p3x, p3y = u.randomHandle(x, y, distance)
 
         curve = love.math.newBezierCurve(self.tail.x, self.tail.y, p2x, p2y,
             p3x, p3y, x, y)
@@ -265,7 +261,7 @@ function Path:updatePoints()
                 dx, dy = dcurve:getControlPoint(1)
             end
 
-            arg = arg + 1 / math.sqrt(dx ^ 2 + dy ^ 2)
+            arg = arg + 1 / u.dist(dx, dy)
         end
     end
 end
@@ -293,3 +289,9 @@ function Path:draw(editing)
         end
     end
 end
+
+local path = {
+    newPath = newPath
+}
+
+return setmetatable(path, {__call = newPath})

@@ -1,4 +1,5 @@
-require "path"
+local newPath = require "path"
+local u = require "useful"
 
 local lg = love.graphics
 local lm = love.mouse
@@ -37,7 +38,7 @@ function love.mousepressed(x, y, button)
     end
 
     for point in pairs(path.controlPoints) do
-        if (point.x - x) ^ 2 + (point.y - y) ^ 2 < 400 then
+        if u.dist2(x, y, point.x, point.y) < 400 then
             if button == "l" then
                 drag = point
                 return
@@ -67,10 +68,18 @@ function love.keypressed(key)
     elseif key == " " then
         moving = not moving
         drag = nil
+    elseif key == "escape" then
+        love.event.quit()
     end
 end
 
 function love.update(dt)
+    if lk.isDown("left") then
+        cspeed = cspeed - 10
+    elseif lk.isDown("right") then
+        cspeed = cspeed + 10
+    end
+
     if drag then
         drag:setPosition(lm.getX(), lm.getY(), lk.isDown("lshift"))
         path:updatePoints()
