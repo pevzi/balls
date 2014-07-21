@@ -1,24 +1,21 @@
 local u = require "useful"
 
+local Object = require "class"
+
 local lg = love.graphics
 
 local w = lg.getWidth()
 local h = lg.getHeight()
 
-local Handle = {}
-Handle.__index = Handle
+local Handle = Object:inherit()
 
-local function newHandle(x, y, p, curve, node, collinear)
-    local self = setmetatable({}, Handle)
-
+function Handle:init(x, y, p, curve, node, collinear)
     self.x = x
     self.y = y
     self.p = p
     self.curve = curve
     self.node = node
     self.collinear = collinear
-
-    return self
 end
 
 function Handle:getCollinear(distance)
@@ -51,16 +48,11 @@ function Handle:updateCurve()
     self.curve:setControlPoint(self.p, self.x, self.y)
 end
 
-local Node = {}
-Node.__index = Node
+local Node = Object:inherit()
 
-local function newNode(x, y)
-    local self = setmetatable({}, Node)
-
+function Node:init(x, y)
     self.x = x
     self.y = y
-
-    return self
 end
 
 function Node:setPosition(x, y)
@@ -94,23 +86,18 @@ function Node:updateCurve() -- or curves?
     end
 end
 
-local Path = {}
-Path.__index = Path
+local Path = Object:inherit()
 
-local function newPath()
-    local self = setmetatable({}, Path)
-
+function Path:init()
     self.head = nil
     self.tail = nil
     self.controlPoints = {} -- maybe try to make this one weak too
     self.colors = setmetatable({}, {__mode = "k"})
     self.points = {}
-
-    return self
 end
 
 function Path:addNode(x, y)
-    local node = newNode(x, y)
+    local node = Node(x, y)
 
     if self.tail then
         local curve, p2x, p2y, p3x, p3y
@@ -131,14 +118,14 @@ function Path:addNode(x, y)
         local c = math.random(0, 255)
         self.colors[curve] = {c, 255 - c, 255 - c}
 
-        self.tail.handle1 = newHandle(p2x, p2y, 2, curve, self.tail,
+        self.tail.handle1 = Handle(p2x, p2y, 2, curve, self.tail,
             self.tail.handle2)
         if self.tail.handle2 then
             self.tail.handle2.collinear = self.tail.handle1
         end
         self.tail.curve1 = curve
 
-        node.handle2 = newHandle(p3x, p3y, -2, curve, node)
+        node.handle2 = Handle(p3x, p3y, -2, curve, node)
         node.curve2 = curve
 
         self:addControlPoint(self.tail.handle1)
@@ -290,8 +277,4 @@ function Path:draw(editing)
     end
 end
 
-local path = {
-    newPath = newPath
-}
-
-return setmetatable(path, {__call = newPath})
+return Path

@@ -1,5 +1,6 @@
-local newPath = require "path"
 local u = require "useful"
+
+local Path = require "path"
 
 local lg = love.graphics
 local lm = love.mouse
@@ -15,7 +16,7 @@ local nballs = 8
 local path, balls, drag, moving
 
 local function init()
-    path = newPath()
+    path = Path()
 
     path:updatePoints()
 
