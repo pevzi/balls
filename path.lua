@@ -263,7 +263,7 @@ function Path:draw(editing)
         lg.setColor(255, 255, 255, 60)
 
         for point in pairs(self.controlPoints) do
-            if point.node then
+            if point:is(Handle) then
                 lg.line(point.x, point.y, point.node.x, point.node.y)
                 lg.circle("line", point.x, point.y, 5, 16)
             else
@@ -277,4 +277,8 @@ function Path:draw(editing)
     end
 end
 
-return Path
+return {
+    Handle = Handle,
+    Node = Node,
+    Path = Path
+}

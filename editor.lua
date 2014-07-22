@@ -2,7 +2,7 @@ local gamestate = require "hump.gamestate"
 local u = require "useful"
 
 local game = require "game"
-local Path = require "path"
+local path = require "path"
 
 local lg = love.graphics
 local lm = love.mouse
@@ -11,7 +11,7 @@ local lk = love.keyboard
 local editor = {}
 
 function editor:init()
-    self.path = Path()
+    self.path = path.Path()
     self.drag = nil
 end
 
@@ -21,9 +21,7 @@ function editor:mousepressed(x, y, button)
             if button == "l" then
                 self.drag = point
                 return
-            elseif button == "r" and not point.node then
-                --                   ^^^^ shit ^^^^
-                -- must have some distinctive thing for nodes and handles
+            elseif button == "r" and point:is(path.Node) then
                 self.path:removeNode(point)
                 self.drag = nil
                 return
