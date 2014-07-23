@@ -40,7 +40,7 @@ end
 
 function editor:keypressed(key)
     if key == "return" then
-        self.path = Path()
+        self.path = path.Path()
     elseif key == " " then
         self.drag = nil
         self.path:updatePoints()
