@@ -1,17 +1,76 @@
 local gamestate = require "hump.gamestate"
+local u = require "useful"
+local Object = require "class"
+
+local chain = require "chain"
 
 local lg = love.graphics
 local lm = love.mouse
 local lk = love.keyboard
 
-local cspeed = 100
+local colors = {{200, 60, 60}, {60, 200, 60}, {60, 60, 200}}
+local pusherColor = {230, 230, 230}
+
+local nballs = 50
+local pushSpeed = 100
+local maxSpeed = 400
+local acc = 400
 local radius = 20
-local nballs = 8
+local distance = radius * 2
+
+local moving = true
+local pusher
+
+local Ball = Object:inherit()
+
+function Ball:init(cx, color, ownSpeed)
+    self.cx = cx
+    self.color = color
+    self.ownSpeed = ownSpeed or 0
+    self.curSpeed = self.ownSpeed
+    self.disconnected = false
+end
+
+function Ball:update(dt)
+    if self.curSpeed ~= self.ownSpeed then
+        local dist = self.ownSpeed - self.curSpeed
+        local d = acc * dt
+        if math.abs(dist) > d then
+            self.curSpeed = self.curSpeed + u.sign(dist) * d
+        else
+            self.curSpeed = self.ownSpeed
+        end
+    end
+
+    self.cx = self.cx + self.curSpeed * dt
+end
+
+function Ball:draw()
+    if self.point then
+        lg.setColor(self.color)
+        lg.circle("fill", self.point.x, self.point.y, radius, 20)
+    end
+end
+
+local Pusher = Ball:inherit()
+
+function Pusher:init(cx, ownSpeed)
+    self.super.init(self, cx, pusherColor, ownSpeed)
+    self.disconnected = true
+end
+
+function Pusher:draw()
+    if self.point then
+        lg.setColor(self.color)
+        lg.circle("line", self.point.x, self.point.y, radius, 20)
+    end
+end
 
 local game = {}
 
 function game:init()
-    self.balls = {}
+    self.balls = chain.Chain()
+    self:spawnBalls(nballs)
     self.path = nil
 end
 
@@ -19,44 +78,86 @@ function game:enter(previous, newpath)
     self.path = newpath
 end
 
+function game:spawnBalls(n)
+    for i = 1, n do
+        local ball = Ball(-distance * i, u.choice(colors))
+        self.balls:insert(ball, self.balls.tail)
+    end
+
+    pusher = Pusher(-distance * (n + 1), pushSpeed)
+
+    self.balls:insert(pusher, self.balls.tail)
+end
+
 function game:keypressed(key)
     if key == " " then
         gamestate.pop()
+    elseif key == "p" then
+        moving = not moving
+        pusher.ownSpeed = moving and pushSpeed or 0
+    end
+end
+
+function game:mousepressed(x, y, button)
+    if button == "l" then
+        for ball in self.balls:iter() do
+            if ball.point and not ball:is(Pusher)
+                    and u.dist(x, y, ball.point.x, ball.point.y) < radius then
+                local prevBall = self.balls.links[ball].prev
+                if prevBall then
+                    prevBall.disconnected = true
+                end
+                self.balls:remove(ball)
+                break
+            end
+        end
     end
 end
 
 function game:update(dt)
-    if lk.isDown("left") then
-        cspeed = cspeed - 10
-    elseif lk.isDown("right") then
-        cspeed = cspeed + 10
-    end
+    local nextBall = nil
 
-    local last = self.balls[#self.balls]
+    for ball in self.balls:reverseIter() do
+        if ball.disconnected then
+            ball:update(dt)
 
-    if #self.balls < nballs and (last == nil or last > radius * 2) then
-        table.insert(self.balls, (last or 0) - radius * 2)
-    end
+            if not ball:is(Pusher) then
+                if ball.color == nextBall.color or nextBall:is(Pusher) then
+                    ball.ownSpeed = -maxSpeed
+                end
 
-    for i, cx in ipairs(self.balls) do
-        self.balls[i] = cx + cspeed * dt
-        if self.balls[i] > #self.path.points and i == nballs then
-            self.balls = {}
-            break
+                if ball.cx < nextBall.cx + distance then
+                    ball.cx = nextBall.cx + distance
+
+                    local lastBall = ball
+                    repeat
+                        lastBall = self.balls.links[lastBall].next
+                    until lastBall.disconnected
+
+                    -- this works wrong when they're
+                    -- moving in the same direction
+                    lastBall.curSpeed = lastBall.curSpeed + ball.curSpeed
+
+                    ball.disconnected = false
+                    ball.ownSpeed = 0
+                    ball.curSpeed = 0
+                end
+            end
+        else
+            ball.cx = nextBall.cx + distance
         end
+
+        nextBall = ball
+
+        ball.point = self.path:getAt(ball.cx)
     end
 end
 
 function game:draw()
     self.path:draw()
 
-    lg.setColor(230, 230, 230)
-
-    for i, cx in ipairs(self.balls) do
-        local p = self.path.points[math.floor(cx + 0.5)]
-        if p then
-            lg.circle("fill", p.x, p.y, radius, 20)
-        end
+    for ball in self.balls:iter() do
+        ball:draw()
     end
 end
 

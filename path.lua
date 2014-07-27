@@ -117,7 +117,7 @@ function Path:addNode(x, y)
         curve = love.math.newBezierCurve(tail.x, tail.y, p2x, p2y,
             p3x, p3y, x, y)
 
-        local c = math.random(0, 255)
+        local c = love.math.random(0, 255)
         self.colors[curve] = {c, 255 - c, 255 - c}
 
         tail.handle1 = Handle(p2x, p2y, 2, curve, tail, tail.handle2)
@@ -223,6 +223,10 @@ function Path:updatePoints()
             arg = arg + 1 / u.dist(dx, dy)
         end
     end
+end
+
+function Path:getAt(px)
+    return self.points[math.floor(px + 0.5)]
 end
 
 function Path:draw(editing)

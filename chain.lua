@@ -87,4 +87,17 @@ function Chain:iter()
     return f, self.head, nil
 end
 
+function Chain:reverseIter()
+    local function f(tail, item)
+        if item then
+            local prevItem = self.links[item].prev
+            return prevItem, self.links[prevItem]
+        else
+            return tail
+        end
+    end
+
+    return f, self.tail, nil
+end
+
 return {Chain = Chain}

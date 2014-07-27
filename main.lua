@@ -3,8 +3,6 @@ local gamestate = require "hump.gamestate"
 local editor = require "editor"
 
 function love.load()
-    math.randomseed(os.time())
-
     love.graphics.setBackgroundColor(30, 30, 30)
 
     gamestate.registerEvents()
