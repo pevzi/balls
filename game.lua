@@ -18,6 +18,7 @@ local acc = 400
 local radius = 20
 local distance = radius * 2
 
+-- temporary
 local moving = true
 local pusher
 
@@ -28,7 +29,7 @@ function Ball:init(cx, color, ownSpeed)
     self.color = color
     self.ownSpeed = ownSpeed or 0
     self.curSpeed = self.ownSpeed
-    self.disconnected = false
+    self.detached = false
 end
 
 function Ball:update(dt)
@@ -56,7 +57,7 @@ local Pusher = Ball:inherit()
 
 function Pusher:init(cx, ownSpeed)
     self.super.init(self, cx, pusherColor, ownSpeed)
-    self.disconnected = true
+    self.detached = true
 end
 
 function Pusher:draw()
@@ -101,13 +102,19 @@ end
 function game:mousepressed(x, y, button)
     if button == "l" then
         for ball in self.balls:iter() do
-            if ball.point and not ball:is(Pusher)
-                    and u.dist(x, y, ball.point.x, ball.point.y) < radius then
+            if ball.point and u.dist(x, y,
+                              ball.point.x, ball.point.y) < radius then
                 local prevBall = self.balls.links[ball].prev
+                
                 if prevBall then
-                    prevBall.disconnected = true
+                    if not prevBall.detached then
+                        prevBall.detached = true
+                        prevBall.curSpeed = ball.curSpeed
+                    end
                 end
+                
                 self.balls:remove(ball)
+                
                 break
             end
         end
@@ -116,33 +123,34 @@ end
 
 function game:update(dt)
     local nextBall = nil
+    local nextDetached = nil
 
     for ball in self.balls:reverseIter() do
-        if ball.disconnected then
+        if ball.detached then
             ball:update(dt)
 
-            if not ball:is(Pusher) then
+            if not ball:is(Pusher) and nextBall then
                 if ball.color == nextBall.color or nextBall:is(Pusher) then
                     ball.ownSpeed = -maxSpeed
+                else
+                    ball.ownSpeed = 0
                 end
 
                 if ball.cx < nextBall.cx + distance then
                     ball.cx = nextBall.cx + distance
 
-                    local lastBall = ball
-                    repeat
-                        lastBall = self.balls.links[lastBall].next
-                    until lastBall.disconnected
-
                     -- this works wrong when they're
                     -- moving in the same direction
-                    lastBall.curSpeed = lastBall.curSpeed + ball.curSpeed
+                    nextDetached.curSpeed = nextDetached.curSpeed
+                                          + ball.curSpeed
 
-                    ball.disconnected = false
+                    ball.detached = false
                     ball.ownSpeed = 0
                     ball.curSpeed = 0
                 end
             end
+
+            nextDetached = ball
         else
             ball.cx = nextBall.cx + distance
         end
