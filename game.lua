@@ -11,16 +11,12 @@ local lk = love.keyboard
 local colors = {{200, 60, 60}, {60, 200, 60}, {60, 60, 200}}
 local pusherColor = {230, 230, 230}
 
-local nballs = 50
-local pushSpeed = 100
+local nballs = 10
 local maxSpeed = 400
+local minSpeed = 10
 local acc = 400
 local radius = 20
 local distance = radius * 2
-
--- temporary
-local moving = true
-local pusher
 
 local Ball = Object:inherit()
 
@@ -80,22 +76,35 @@ function game:enter(previous, newpath)
 end
 
 function game:spawnBalls(n)
+    local from = self.balls.tail and math.min(self.balls.tail.cx, 0) or 0
+
     for i = 1, n do
-        local ball = Ball(-distance * i, u.choice(colors))
+        local ball = Ball(from - distance * i, u.choice(colors))
         self.balls:insert(ball, self.balls.tail)
     end
 
-    pusher = Pusher(-distance * (n + 1), pushSpeed)
-
+    local pusher = Pusher(from - distance * (n + 1), maxSpeed)
     self.balls:insert(pusher, self.balls.tail)
+end
+
+function game:removeBall(ball)
+    local prevBall = self.balls.links[ball].prev
+
+    if prevBall then
+        if not prevBall.detached then
+            prevBall.detached = true
+            prevBall.curSpeed = ball.curSpeed
+        end
+    end
+
+    self.balls:remove(ball)
 end
 
 function game:keypressed(key)
     if key == " " then
         gamestate.pop()
-    elseif key == "p" then
-        moving = not moving
-        pusher.ownSpeed = moving and pushSpeed or 0
+    elseif key == "return" then
+        self:spawnBalls(nballs)
     end
 end
 
@@ -104,17 +113,7 @@ function game:mousepressed(x, y, button)
         for ball in self.balls:iter() do
             if ball.point and u.dist(x, y,
                               ball.point.x, ball.point.y) < radius then
-                local prevBall = self.balls.links[ball].prev
-                
-                if prevBall then
-                    if not prevBall.detached then
-                        prevBall.detached = true
-                        prevBall.curSpeed = ball.curSpeed
-                    end
-                end
-                
-                self.balls:remove(ball)
-                
+                self:removeBall(ball)
                 break
             end
         end
@@ -124,12 +123,21 @@ end
 function game:update(dt)
     local nextBall = nil
     local nextDetached = nil
+    local nextPusher = nil
 
     for ball in self.balls:reverseIter() do
         if ball.detached then
             ball:update(dt)
 
-            if not ball:is(Pusher) and nextBall then
+            if ball:is(Pusher) then
+                nextPusher = ball
+
+                if nextBall and ball.cx < nextBall.cx + distance then
+                    self:removeBall(ball)
+                    ball = nextBall
+                end
+
+            elseif nextBall then
                 if ball.color == nextBall.color or nextBall:is(Pusher) then
                     ball.ownSpeed = -maxSpeed
                 else
@@ -153,6 +161,11 @@ function game:update(dt)
             nextDetached = ball
         else
             ball.cx = nextBall.cx + distance
+
+            if nextPusher then
+                nextPusher.ownSpeed = (1 - ball.cx / self.path.length)
+                                    * maxSpeed + minSpeed
+            end
         end
 
         nextBall = ball

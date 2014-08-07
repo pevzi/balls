@@ -94,6 +94,7 @@ function Path:init()
     self.controlPoints = {} -- maybe try to make this one weak too
     self.colors = setmetatable({}, {__mode = "k"})
     self.points = {}
+    self.length = 0
 end
 
 function Path:addNode(x, y)
@@ -198,6 +199,7 @@ end
 
 function Path:updatePoints()
     self.points = {}
+    self.length = 0
 
     for node in self.nodes:iter() do
         local curve = node.curve1
@@ -221,6 +223,8 @@ function Path:updatePoints()
             end
 
             arg = arg + 1 / u.dist(dx, dy)
+
+            self.length = self.length + 1
         end
     end
 end
