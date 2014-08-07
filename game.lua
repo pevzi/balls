@@ -8,7 +8,13 @@ local lg = love.graphics
 local lm = love.mouse
 local lk = love.keyboard
 
-local colors = {{200, 60, 60}, {60, 200, 60}, {60, 60, 200}}
+local palettes = {
+    -- palettes are from http://www.colourlovers.com
+    {{120,75,121}, {78,205,196}, {232,255,107}, {232,126,40}, {196,77,88}}, -- monday cheer [3101907]
+    -- {{66,66,84}, {100,144,138}, {232,202,164}, {204,42,65}}, -- you are beautiful [379413]
+    {{101,86,67}, {128,188,163}, {246,247,189}, {230,172,39}, {191,77,40}}, -- headache [953498]
+    -- {{247,120,37}, {211,206,61}, {241,239,165}, {96,185,154}}, -- mystery machine [940086]
+}
 local pusherColor = {230, 230, 230}
 
 local nballs = 10
@@ -66,6 +72,7 @@ end
 local game = {}
 
 function game:init()
+    self.palette = u.choice(palettes)
     self.balls = chain.Chain()
     self:spawnBalls(nballs)
     self.path = nil
@@ -79,7 +86,7 @@ function game:spawnBalls(n)
     local from = self.balls.tail and math.min(self.balls.tail.cx, 0) or 0
 
     for i = 1, n do
-        local ball = Ball(from - distance * i, u.choice(colors))
+        local ball = Ball(from - distance * i, u.choice(self.palette))
         self.balls:insert(ball, self.balls.tail)
     end
 
