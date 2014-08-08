@@ -35,6 +35,7 @@ function Ball:init(cx, color, ownSpeed)
 end
 
 function Ball:update(dt)
+    -- curSpeed changes towards ownSpeed
     if self.curSpeed ~= self.ownSpeed then
         local dist = self.ownSpeed - self.curSpeed
         local d = acc * dt
@@ -95,16 +96,20 @@ function game:spawnBalls(n)
 end
 
 function game:removeBall(ball)
-    local prevBall = self.balls.links[ball].prev
+    self:removeBalls(ball, ball)
+end
+
+function game:removeBalls(from, to)
+    local prevBall = self.balls.links[from].prev
 
     if prevBall then
         if not prevBall.detached then
             prevBall.detached = true
-            prevBall.curSpeed = ball.curSpeed
+            prevBall.curSpeed = from.curSpeed
         end
     end
 
-    self.balls:remove(ball)
+    self.balls:removeRange(from, to)
 end
 
 function game:keypressed(key)
@@ -132,16 +137,17 @@ function game:update(dt)
     local nextDetached = nil
     local nextPusher = nil
 
+    local toRemove = {}
+
     for ball in self.balls:reverseIter() do
         if ball.detached then
             ball:update(dt)
 
             if ball:is(Pusher) then
-                nextPusher = ball
-
                 if nextBall and ball.cx < nextBall.cx + distance then
-                    self:removeBall(ball)
-                    ball = nextBall
+                    table.insert(toRemove, {from = ball, to = ball})
+                else
+                    nextPusher = ball
                 end
 
             elseif nextBall then
@@ -178,6 +184,10 @@ function game:update(dt)
         nextBall = ball
 
         ball.point = self.path:getAt(ball.cx)
+    end
+
+    for i, v in ipairs(toRemove) do
+        self:removeBalls(v.from, v.to)
     end
 end
 
