@@ -213,7 +213,6 @@ function Path:updatePoints()
         local arg = 0
         while arg < 1 do
             local x, y = curve:evaluate(arg)
-            table.insert(self.points, {x = x, y = y})
 
             local dx, dy
             if dcurve:getDegree() > 0 then
@@ -221,6 +220,8 @@ function Path:updatePoints()
             else
                 dx, dy = dcurve:getControlPoint(1)
             end
+
+            table.insert(self.points, {x = x, y = y, dx = dx, dy = dy})
 
             arg = arg + 1 / u.dist(dx, dy)
 

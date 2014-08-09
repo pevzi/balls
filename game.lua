@@ -18,6 +18,7 @@ local palettes = {
 local pusherColor = {230, 230, 230}
 
 local nballs = 10
+local flySpeed = 2000
 local maxSpeed = 400
 local minSpeed = 10
 local acc = 400
@@ -70,13 +71,64 @@ function Pusher:draw()
     end
 end
 
+local PendingBall = Object:inherit()
+
+function PendingBall:init(x, y, color)
+    self.x = x
+    self.y = y
+    self.color = color
+end
+
+function PendingBall:update(dt)
+    self.y = self.y - flySpeed * dt
+end
+
+function PendingBall:draw()
+    lg.setColor(self.color)
+    lg.circle("fill", self.x, self.y, radius, 20)
+end
+
+local Cannon = Object:inherit()
+
+function Cannon:init(palette)
+    self.palette = palette
+    self.x = 0
+    self.y = lg.getHeight() - distance
+    self.current = u.choice(palette)
+    self.next = u.choice(palette)
+end
+
+function Cannon:fire()
+    local ball = PendingBall(self.x, self.y, self.current)
+
+    self.current = self.next
+    self.next = u.choice(self.palette)
+
+    return ball
+end
+
+function Cannon:swap()
+    self.current, self.next = self.next, self.current
+end
+
+function Cannon:draw()
+    lg.setColor(self.current)
+    lg.circle("fill", self.x, self.y, radius, 20)
+
+    lg.setColor(self.next)
+    lg.circle("fill", self.x, self.y + radius, radius / 2, 20)
+end
+
 local game = {}
 
 function game:init()
     self.palette = u.choice(palettes)
+    self.cannon = Cannon(self.palette)
     self.balls = chain.Chain()
-    self:spawnBalls(nballs)
+    self.pending = {}
     self.path = nil
+
+    self:spawnBalls(nballs)
 end
 
 function game:enter(previous, newpath)
@@ -122,17 +174,52 @@ end
 
 function game:mousepressed(x, y, button)
     if button == "l" then
-        for ball in self.balls:iter() do
-            if ball.point and u.dist(x, y,
-                              ball.point.x, ball.point.y) < radius then
-                self:removeBall(ball)
-                break
-            end
-        end
+        local pball = self.cannon:fire()
+        self.pending[pball] = true
+    elseif button == "r" then
+        self.cannon:swap()
     end
 end
 
 function game:update(dt)
+    self.cannon.x = lm.getX()
+
+    for pball in pairs(self.pending) do
+        pball:update(dt)
+
+        if pball.y < 0 then
+            self.pending[pball] = nil
+        end
+
+        for ball in self.balls:iter() do
+            if not ball:is(Pusher) and ball.point and u.dist(pball.x, pball.y,
+                                   ball.point.x, ball.point.y) < distance then
+                local cx, after
+
+                local angle1 = math.atan2(ball.point.dy, ball.point.dx)
+                local angle2 = math.atan2(pball.y - ball.point.y,
+                                          pball.x - ball.point.x)
+
+                if (angle1 - angle2 + math.pi / 2) % (math.pi * 2)
+                                                   < math.pi then
+                    -- same direction (put before)
+                    cx = ball.cx - distance
+                    after = self.balls.links[ball].prev
+                else
+                    -- opposite direction (put after)
+                    cx = ball.cx + distance
+                    after = ball
+                end
+
+                self.balls:insert(Ball(cx, pball.color), after)
+
+                self.pending[pball] = nil
+
+                break
+            end
+        end
+    end
+
     local nextBall = nil
     local nextDetached = nil
     local nextPusher = nil
@@ -171,7 +258,7 @@ function game:update(dt)
                 end
             end
 
-            nextDetached = ball
+            nextDetached = ball -- may assign already attached ball
         else
             ball.cx = nextBall.cx + distance
 
@@ -193,6 +280,12 @@ end
 
 function game:draw()
     self.path:draw()
+
+    self.cannon:draw()
+
+    for pball in pairs(self.pending) do
+        pball:draw()
+    end
 
     for ball in self.balls:iter() do
         ball:draw()
