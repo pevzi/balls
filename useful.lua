@@ -1,8 +1,5 @@
 local sqrt = math.sqrt
 local floor = math.floor
-local cos = math.cos
-local sin = math.sin
-local pi = math.pi
 local random = love.math.random
 
 local function dist2(x1, y1, x2, y2)
@@ -14,13 +11,6 @@ end
 
 local function dist(x1, y1, x2, y2)
     return sqrt(dist2(x1, y1, x2, y2))
-end
-
-local function randomHandle(ox, oy, r)
-    local angle = random() * pi * 2
-
-    return ox + cos(angle) * r,
-           oy + sin(angle) * r
 end
 
 local function choice(t)
@@ -40,7 +30,6 @@ end
 local useful = {
     dist = dist,
     dist2 = dist2,
-    randomHandle = randomHandle,
     choice = choice,
     sign = sign,
 }

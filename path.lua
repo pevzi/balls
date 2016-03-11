@@ -1,12 +1,19 @@
 local u = require "useful"
 
-local Object = require "class"
+local Object = require "libs.class"
 local chain = require "chain"
 
 local lg = love.graphics
 
 local w = lg.getWidth()
 local h = lg.getHeight()
+
+local function randomHandle(ox, oy, r)
+    local angle = love.math.random() * math.pi * 2
+
+    return ox + math.cos(angle) * r,
+           oy + math.sin(angle) * r
+end
 
 local Handle = Object:inherit()
 
@@ -19,7 +26,7 @@ function Handle:init(x, y, p, curve, node, collinear)
     self.collinear = collinear
 end
 
-function Handle:getCollinear(distance)
+function Handle:getCollinearPosition(distance)
     local d1 = u.dist(self.node.x, self.node.y, self.x, self.y)
     local d2 = distance or u.dist(self.node.x, self.node.y,
         self.collinear.x, self.collinear.y)
@@ -33,13 +40,12 @@ function Handle:getCollinear(distance)
     end
 end
 
-function Handle:setPosition(x, y, noUpdateCollinear)
+function Handle:setPosition(x, y, updateCollinear)
     self.x = x
     self.y = y
 
-    if not noUpdateCollinear and self.collinear then
-        local collX, collY = self:getCollinear()
-        self.collinear:setPosition(collX, collY, true)
+    if updateCollinear and self.collinear then
+        self.collinear:setPosition(self:getCollinearPosition())
     end
 
     self:updateCurve()
@@ -64,14 +70,12 @@ function Node:setPosition(x, y)
 
     if self.handle1 then
         self.handle1:setPosition(self.handle1.x + dx,
-                                 self.handle1.y + dy,
-                                 true)
+                                 self.handle1.y + dy)
     end
 
     if self.handle2 then
         self.handle2:setPosition(self.handle2.x + dx,
-                                 self.handle2.y + dy,
-                                 true)
+                                 self.handle2.y + dy)
     end
 
     self:updateCurve()
@@ -108,12 +112,12 @@ function Path:addNode(x, y)
         local distance = u.dist(x, y, tail.x, tail.y) / 2
 
         if tail.handle2 then
-            p2x, p2y = tail.handle2:getCollinear(distance)
+            p2x, p2y = tail.handle2:getCollinearPosition(distance)
         else
-            p2x, p2y = u.randomHandle(tail.x, tail.y, distance)
+            p2x, p2y = randomHandle(tail.x, tail.y, distance)
         end
 
-        p3x, p3y = u.randomHandle(x, y, distance)
+        p3x, p3y = randomHandle(x, y, distance)
 
         curve = love.math.newBezierCurve(tail.x, tail.y, p2x, p2y,
             p3x, p3y, x, y)
@@ -160,7 +164,7 @@ function Path:removeNode(node)
         if prevNode then
             nextNode.curve2 = node.curve2
             nextNode:updateCurve()
-            
+
             nextNode.handle2.curve = node.curve2
             nextNode.handle2:updateCurve()
         else

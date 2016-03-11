@@ -1,4 +1,4 @@
-local gamestate = require "hump.gamestate"
+local gamestate = require "libs.gamestate"
 local u = require "useful"
 
 local game = require "game"
@@ -50,7 +50,7 @@ end
 
 function editor:update(dt)
     if self.drag then
-        self.drag:setPosition(lm.getX(), lm.getY(), lk.isDown("lshift"))
+        self.drag:setPosition(lm.getX(), lm.getY(), not lk.isDown("lshift"))
     end
 end
 

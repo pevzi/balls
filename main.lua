@@ -1,4 +1,4 @@
-local gamestate = require "hump.gamestate"
+local gamestate = require "libs.gamestate"
 
 local editor = require "editor"
 

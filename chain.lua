@@ -6,7 +6,7 @@ A collection for storing ordered unique elements that allows to:
 All operations are done with constant time.
 ]]
 
-local Object = require "class"
+local Object = require "libs.class"
 
 local Chain = Object:inherit()
 

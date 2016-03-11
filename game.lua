@@ -1,6 +1,6 @@
-local gamestate = require "hump.gamestate"
+local gamestate = require "libs.gamestate"
 local u = require "useful"
-local Object = require "class"
+local Object = require "libs.class"
 
 local chain = require "chain"
 
@@ -60,7 +60,7 @@ end
 local Pusher = Ball:inherit()
 
 function Pusher:init(cx, ownSpeed)
-    self.super.init(self, cx, pusherColor, ownSpeed)
+    Pusher.super.init(self, cx, pusherColor, ownSpeed)
     self.detached = true
 end
 
@@ -192,13 +192,13 @@ function game:update(dt)
         end
 
         for ball in self.balls:iter() do
-            if not ball:is(Pusher) and ball.point and u.dist(pball.x, pball.y,
-                                   ball.point.x, ball.point.y) < distance then
+            if ball.point and u.dist(pball.x, pball.y,
+                    ball.point.x, ball.point.y) < distance and not ball:is(Pusher) then
                 local cx, after
 
                 local angle1 = math.atan2(ball.point.dy, ball.point.dx)
-                local angle2 = math.atan2(pball.y - ball.point.y,
-                                          pball.x - ball.point.x)
+                local angle2 = math.atan2(pball.y - ball.point.y, -- or better just hardcode
+                                          pball.x - ball.point.x) -- the "up" direction?
 
                 if (angle1 - angle2 + math.pi / 2) % (math.pi * 2)
                                                    < math.pi then
