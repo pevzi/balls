@@ -165,7 +165,7 @@ function game:removeBalls(from, to)
 end
 
 function game:keypressed(key)
-    if key == " " then
+    if key == "space" then
         gamestate.pop()
     elseif key == "return" then
         self:spawnBalls(nballs)
@@ -173,10 +173,10 @@ function game:keypressed(key)
 end
 
 function game:mousepressed(x, y, button)
-    if button == "l" then
+    if button == 1 then
         local pball = self.cannon:fire()
         self.pending[pball] = true
-    elseif button == "r" then
+    elseif button == 2 then
         self.cannon:swap()
     end
 end

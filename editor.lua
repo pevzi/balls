@@ -18,10 +18,10 @@ end
 function editor:mousepressed(x, y, button)
     for point in pairs(self.path.controlPoints) do
         if u.dist2(x, y, point.x, point.y) < 400 then
-            if button == "l" then
+            if button == 1 then
                 self.drag = point
                 return
-            elseif button == "r" and point:is(path.Node) then
+            elseif button == 2 and point:is(path.Node) then
                 self.path:removeNode(point)
                 self.drag = nil
                 return
@@ -29,7 +29,7 @@ function editor:mousepressed(x, y, button)
         end
     end
 
-    if button == "l" then
+    if button == 1 then
         self.drag = self.path:addNode(x, y)
     end
 end
@@ -41,7 +41,7 @@ end
 function editor:keypressed(key)
     if key == "return" then
         self.path = path.Path()
-    elseif key == " " then
+    elseif key == "space" then
         self.drag = nil
         self.path:updatePoints()
         gamestate.push(game, self.path)
