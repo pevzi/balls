@@ -3,7 +3,7 @@ local gamestate = require "libs.gamestate"
 local editor = require "editor"
 
 function love.load()
-    love.graphics.setBackgroundColor(30, 30, 30)
+    love.graphics.setBackgroundColor(0.12, 0.12, 0.12)
 
     gamestate.registerEvents()
     gamestate.switch(editor)

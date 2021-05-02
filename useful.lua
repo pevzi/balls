@@ -27,11 +27,21 @@ local function sign(x)
     end
 end
 
+local function rgb(r, g, b)
+    return {r / 255, g / 255, b / 255}
+end
+
+local function rgba(r, g, b, a)
+    return {r / 255, g / 255, b / 255, a / 255}
+end
+
 local useful = {
     dist = dist,
     dist2 = dist2,
     choice = choice,
     sign = sign,
+    rgb = rgb,
+    rgba = rgba,
 }
 
 return useful

@@ -122,8 +122,8 @@ function Path:addNode(x, y)
         curve = love.math.newBezierCurve(tail.x, tail.y, p2x, p2y,
             p3x, p3y, x, y)
 
-        local c = love.math.random(0, 255)
-        self.colors[curve] = {c, 255 - c, 255 - c}
+        local c = love.math.random()
+        self.colors[curve] = {c, 1 - c, 1 - c}
 
         tail.handle1 = Handle(p2x, p2y, 2, curve, tail, tail.handle2)
         if tail.handle2 then
@@ -251,7 +251,7 @@ function Path:draw(editing)
     end
 
     if editing then
-        lg.setColor(255, 255, 255, 60)
+        lg.setColor(1, 1, 1, 0.2)
 
         for point in pairs(self.controlPoints) do
             if point:is(Handle) then

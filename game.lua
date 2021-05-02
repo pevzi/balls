@@ -10,12 +10,12 @@ local lk = love.keyboard
 
 local palettes = {
     -- palettes are from http://www.colourlovers.com
-    {{120,75,121}, {78,205,196}, {232,255,107}, {232,126,40}, {196,77,88}}, -- monday cheer [3101907]
-    -- {{66,66,84}, {100,144,138}, {232,202,164}, {204,42,65}}, -- you are beautiful [379413]
-    {{101,86,67}, {128,188,163}, {246,247,189}, {230,172,39}, {191,77,40}}, -- headache [953498]
-    -- {{247,120,37}, {211,206,61}, {241,239,165}, {96,185,154}}, -- mystery machine [940086]
+    {u.rgb(120, 75, 121), u.rgb(78, 205, 196), u.rgb(232, 255, 107), u.rgb(232, 126, 40), u.rgb(196, 77, 88)}, -- monday cheer [3101907]
+    -- {u.rgb(66, 66, 84), u.rgb(100, 144, 138), u.rgb(232, 202, 164), u.rgb(204, 42, 65)}, -- you are beautiful [379413]
+    {u.rgb(101, 86, 67), u.rgb(128, 188, 163), u.rgb(246, 247, 189), u.rgb(230, 172, 39), u.rgb(191, 77, 40)}, -- headache [953498]
+    -- {u.rgb(247, 120, 37), u.rgb(211, 206, 61), u.rgb(241, 239, 165), u.rgb(96, 185, 154)}, -- mystery machine [940086]
 }
-local pusherColor = {230, 230, 230}
+local pusherColor = {0.9, 0.9, 0.9}
 
 local nballs = 10
 local flySpeed = 2000
