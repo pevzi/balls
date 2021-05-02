@@ -10,7 +10,7 @@ Press space to switch to the "game mode". Here you can shoot balls from your can
 
 ## Requirements
 
-This game uses [LÖVE][LOVE] framework and requires LÖVE 0.9.x.
+This game uses [LÖVE][LOVE] framework and requires LÖVE 11.x.
 
 ## License
 
